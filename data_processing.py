@@ -24,4 +24,11 @@ all_stocks = pd.merge(all_stocks, equity, how='outer')
 
 all_stocks.ffill(inplace=True)
 
-#print(all_stocks)
+# change prices to returns in dataframe
+
+returns = all_stocks.set_index('Date').pct_change()
+
+returns.reset_index(inplace=True)
+
+# print(returns)
+# print(returns.dtypes)
