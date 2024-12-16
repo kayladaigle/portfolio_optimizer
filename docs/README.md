@@ -18,7 +18,7 @@ The **Portfolio Optimizer** is a web-based tool that helps users create optimize
 - **Languages**: Python
 - **Libraries/Frameworks**:
     - Data Manipulation: `NumPy`, `Pandas`
-    - Optimization: `CuXopt`
+    - Optimization: `CvXopt`
     - Forecasting: `Prophet`
     - Visualizations: `Plotly`
     - Web Interface: `Streamlit`
