@@ -16,12 +16,16 @@ def stock_optimization(returns_data, risk_tolerance):
     pivot = returns_data.pivot_table(index='date', columns='stock_symbol', values='yhat')
     cov_matrix = pivot.cov().values
 
+    # account for risk preference
+    risk_scale = 1/risk_tolerance
+    risk_cov_matrix = risk_scale * cov_matrix
+
     # number of assets
     n = len(mean_returns)
 
     # building quadratic programming problem
 
-    P = cvx.matrix(cov_matrix)
+    P = cvx.matrix(risk_cov_matrix)
     q = cvx.matrix(np.zeros((n,1)))
 
     A = cvx.matrix(np.ones((1,n)))

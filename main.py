@@ -35,16 +35,16 @@ with st.sidebar:
     all_stocks = returns_data['stock_symbol'].unique()
 
     selected_assets = st.multiselect('Preferred Assets for Portfolio Optimization', all_stocks, default=['AMZN', 'GOOGL'])
-
+    st.selectbox("Would you like to diversify your portfolio?",['No, use only selected assets', 'Yes, let the optimizer add more assets'])
 
     forecast_period = st.slider('Forecast Period (in days)', 1, 365, 30)
     st.divider()
     st.sidebar.info("""
     ## FAQ:
     ## What is Low, Medium, or High Risk in a Stock Portfolio?
-    * Low Risk: Stable, big companies. Lower returns, less volatility.
-    * Medium Risk: Growing companies. Balanced returns and risk.
-    * High Risk: Small or new companies. High risk, high potential return.
+    * Low Risk: (5%) Stable, big companies. Lower returns, less volatility.
+    * Medium Risk: (10%) Growing companies. Balanced returns and risk.
+    * High Risk: (20%) Small or new companies. High risk, high potential return.
 
     ## What Are Assets in a Stock Portfolio?
     Assets are the stocks or funds in your portfolio. Each has different risk and return.
@@ -63,6 +63,7 @@ st.write(f"Risk Level: {choice * 100}%")
 st.write(f"Preferred Assets: {selected_assets}")
 st.write(f"Forecasted Time Period: {forecast_period} days")
 
+
 selected_data = returns_data[returns_data['stock_symbol'].isin(selected_assets)]
 
 optimal_weights, portfolio_return, portfolio_risk = stock_optimization(selected_data,choice)
@@ -73,20 +74,26 @@ st.dataframe(weights_df)
 
 st.write(f"Expected Portfolio Return: {portfolio_return * 100:.2f}%")
 st.write(f"Portfolio Risk (Standard Deviation): {portfolio_risk * 100:.2f}%")
+st.divider()
 
-if st.button("Show Portfolio Allocation"):
+col1, col2 = st.columns(2)
+# column 1
+with col1:
+
     fig = go.Figure(data=[go.Pie(labels=selected_assets, values=optimal_weights)])
     fig.update_layout(title="Portfolio Allocation")
     st.plotly_chart(fig)
 
-# Cumulative Returns Chart (simulate for demonstration)
-dates = pd.date_range(start="2024-01-01", periods=forecast_period, freq='D')
-cumulative_returns = np.cumsum(np.random.randn(forecast_period) * portfolio_return)  # Simulate returns
+    # Cumulative Returns Chart (simulate for demonstration)
+    dates = pd.date_range(start="2024-01-01", periods=forecast_period, freq='D')
+    cumulative_returns = np.cumsum(np.random.randn(forecast_period) * portfolio_return)  # Simulate returns
 
-fig2 = go.Figure()
-fig2.add_trace(go.Scatter(x=dates, y=cumulative_returns, mode='lines', name='Cumulative Return'))
-fig2.update_layout(title="Portfolio Performance Over Time",
+#column 2
+with col2:
+    fig2 = go.Figure()
+    fig2.add_trace(go.Scatter(x=dates, y=cumulative_returns, mode='lines', name='Cumulative Return'))
+    fig2.update_layout(title="Portfolio Performance Forecasted Period",
                    xaxis_title="Date",
                    yaxis_title="Cumulative Return")
-st.plotly_chart(fig2)
+    st.plotly_chart(fig2)
 
