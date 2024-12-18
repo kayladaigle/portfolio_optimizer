@@ -16,8 +16,15 @@ def stock_optimization(returns_data, risk_tolerance):
     pivot = returns_data.pivot_table(index='date', columns='stock_symbol', values='yhat')
     cov_matrix = pivot.cov().values
 
-    # account for risk preference
-    risk_scale = 1/risk_tolerance
+    if risk_tolerance == 'low':
+        risk_scale = 0.20
+    elif risk_tolerance == 'medium':
+        risk_scale = 0.50
+    elif risk_tolerance == 'high':
+        risk_scale = 0.80
+    else:
+        risk_scale = 0.50
+
     risk_cov_matrix = risk_scale * cov_matrix
 
     # number of assets
@@ -40,6 +47,6 @@ def stock_optimization(returns_data, risk_tolerance):
     optimal_weights = np.array(sol['x']).flatten()
 
     portfolio_return = np.dot(optimal_weights, mean_returns)
-    portfolio_risk = np.sqrt(np.dot(optimal_weights.T, np.dot(cov_matrix, optimal_weights)))
+    portfolio_risk = np.sqrt(np.dot(optimal_weights.T, np.dot(risk_cov_matrix, optimal_weights)))
 
     return optimal_weights, portfolio_return, portfolio_risk

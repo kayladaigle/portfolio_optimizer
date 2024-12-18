@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from optimization import stock_optimization
 
 # read csv of forecasted returns
-returns_data = pd.read_csv('forecasted_returns.csv')
+returns_data = pd.read_csv('forecasted_five_year_returns.csv')
 
 # columns renamed
 returns_data.columns = ['stock_symbol', 'index', 'date', 'yhat']
@@ -35,9 +35,13 @@ with st.sidebar:
     all_stocks = returns_data['stock_symbol'].unique()
 
     selected_assets = st.multiselect('Preferred Assets for Portfolio Optimization', all_stocks, default=['AMZN', 'GOOGL'])
-    st.selectbox("Would you like to diversify your portfolio?",['No, use only selected assets', 'Yes, let the optimizer add more assets'])
+    diversify_option = st.selectbox("Would you like to diversify your portfolio?",['No, use only selected assets', 'Yes, let the optimizer add more assets'])
 
-    forecast_period = st.slider('Forecast Period (in days)', 1, 365, 30)
+    # Slider to select the forecast period in years (1 to 5 years)
+    forecast_years = st.slider('Select Forecast Period (in Years)', min_value=1, max_value=5, value=1)
+
+    forecast_period = forecast_years * 365
+
     st.divider()
     st.sidebar.info("""
     ## FAQ:
@@ -57,20 +61,48 @@ with st.sidebar:
 
     """)
 
+# top of page
+
 st.title('Stock Portfolio Optimizer')
+
 #  selected inputs
-st.write(f"Risk Level: {choice * 100}%")
+st.write(f"Risk Level: {user_risk_choice}")
 st.write(f"Preferred Assets: {selected_assets}")
-st.write(f"Forecasted Time Period: {forecast_period} days")
+
+if forecast_years == 1:
+    st.write(f"Forecasted Time Period: {forecast_years} year")
+else:
+    st.write(f"Forecasted Time Period: {forecast_years} years")
 
 
-selected_data = returns_data[returns_data['stock_symbol'].isin(selected_assets)]
+# diversify function
 
-optimal_weights, portfolio_return, portfolio_risk = stock_optimization(selected_data,choice)
+def diversify_portfolio(returns_data, selected_assets, diversify):
+    if diversify == 'No, use only selected assets':
+        selected_data = returns_data[returns_data['stock_symbol'].isin(selected_assets)]
+        final_assets = selected_assets
+        return final_assets, selected_data
+    else:
+        all_stocks = returns_data.pivot_table(index='date',columns='stock_symbol', values='yhat')
+        correlation = all_stocks.corr()
+        selected_correlation = correlation[selected_assets].mean(axis=1)
+        not_selected = [asset for asset in all_stocks.columns if asset not in selected_assets]
+        sorted_correlation = selected_correlation.loc[not_selected].sort_values(ascending=True)
+        selected_for_diversity = sorted_correlation.head(7).index.tolist()
+        final_assets = selected_for_diversity + selected_assets
+        selected_data = returns_data[returns_data['stock_symbol'].isin(final_assets)]
+        return final_assets , selected_data
+
+
+final_assets, selected_data = diversify_portfolio(returns_data, selected_assets, diversify_option)
+# optimal weight data
+optimal_weights, portfolio_return, portfolio_risk = stock_optimization(selected_data,user_risk_choice)
 
 st.write("Optimal Portfolio Weights:")
-weights_df = pd.DataFrame(optimal_weights, columns=["Optimal Weight"], index=selected_assets)
+weights_df = pd.DataFrame(optimal_weights, columns=["Optimal Weight"], index=final_assets)
 st.dataframe(weights_df)
+
+# expected return and portfolio risk
 
 st.write(f"Expected Portfolio Return: {portfolio_return * 100:.2f}%")
 st.write(f"Portfolio Risk (Standard Deviation): {portfolio_risk * 100:.2f}%")
@@ -78,22 +110,26 @@ st.divider()
 
 col1, col2 = st.columns(2)
 # column 1
+# optimal weight chart
 with col1:
 
-    fig = go.Figure(data=[go.Pie(labels=selected_assets, values=optimal_weights)])
+    fig = go.Figure(data=[go.Pie(labels=final_assets, values=optimal_weights)])
     fig.update_layout(title="Portfolio Allocation")
     st.plotly_chart(fig)
+
+#column 2
+# performance over time graph
+with col2:
 
     # Cumulative Returns Chart (simulate for demonstration)
     dates = pd.date_range(start="2024-01-01", periods=forecast_period, freq='D')
     cumulative_returns = np.cumsum(np.random.randn(forecast_period) * portfolio_return)  # Simulate returns
 
-#column 2
-with col2:
     fig2 = go.Figure()
     fig2.add_trace(go.Scatter(x=dates, y=cumulative_returns, mode='lines', name='Cumulative Return'))
     fig2.update_layout(title="Portfolio Performance Forecasted Period",
                    xaxis_title="Date",
                    yaxis_title="Cumulative Return")
     st.plotly_chart(fig2)
+
 
