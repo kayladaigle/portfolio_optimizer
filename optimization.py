@@ -1,19 +1,19 @@
 # use forecasted return data created with Prophet to optimize with CvXopt
 
 import numpy as np
-import pandas as pd
 import cvxopt as cvx
-from cvxopt import blas, solvers
-import streamlit as st
-
+from cvxopt import solvers
+from data_processing import returns
 
 def stock_optimization(returns_data, risk_tolerance):
 
     # group by stock symbols
-    mean_returns = returns_data.groupby('stock_symbol')['yhat'].mean()
+    mean_returns = returns_data.groupby('Stock')['y'].mean()
+    print("Mean Returns:", mean_returns)
+    print(returns_data.head())
 
     # reshape data so that each stock symbol is a column - calculate covariance between stocks
-    pivot = returns_data.pivot_table(index='date', columns='stock_symbol', values='yhat')
+    pivot = returns_data.pivot_table(index='ds', columns='Stock', values='y')
     cov_matrix = pivot.cov().values
 
     if risk_tolerance == 'low':
@@ -29,6 +29,7 @@ def stock_optimization(returns_data, risk_tolerance):
 
     # number of assets
     n = len(mean_returns)
+
 
     # building quadratic programming problem
 
@@ -50,3 +51,6 @@ def stock_optimization(returns_data, risk_tolerance):
     portfolio_risk = np.sqrt(np.dot(optimal_weights.T, np.dot(risk_cov_matrix, optimal_weights)))
 
     return optimal_weights, portfolio_return, portfolio_risk
+
+
+
